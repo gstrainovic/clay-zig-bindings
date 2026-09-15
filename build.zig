@@ -21,6 +21,10 @@ pub fn build(b: *B) void {
             }),
         });
 
+        // zid: gepatchte clay.h zuerst im Suchpfad (siehe vendor/clay.h, Kommentare mit „zid:“).
+        // Zwei Fehler in Clay_UpdateScrollContainers ließen veraltete Scroll-Einträge mit einem
+        // Zeiger in das Element-Array des Vorframes zurück; das stürzte in clipConfig->vertical ab.
+        clay_lib.addIncludePath(b.path("vendor"));
         const clay_dep = b.dependency("clay", .{});
         clay_lib.addIncludePath(clay_dep.path(""));
 

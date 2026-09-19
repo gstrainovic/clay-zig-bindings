@@ -4203,12 +4203,26 @@ void Clay__CompactLayoutElementsHashMap(Clay_Context *context) {
     }
 }
 
+// zid: Der Messcache der Texte gibt Einträge (und ihre Wörter) nur frei, wenn ein Nachschlagen
+// zufällig über einen veralteten Eintrag im selben Bucket läuft. Ein einziger wachsender Absatz
+// (gestreamte Chat-Antwort) legt jedes Frame einen neuen Eintrag mit allen Wörtern an und trifft
+// die alten fast nie: nach ~1500 Zeichen war die Wortgrenze (16384) voll, jeder weitere Text
+// blieb ungemessen. Ist Wort- oder Eintragsliste zu drei Vierteln voll, wird der Cache geleert;
+// das Frame misst den sichtbaren Text einmal neu.
+void Clay__ResetMeasureTextCacheWhenFull(Clay_Context *context) {
+    if (context->measuredWords.length >= context->measuredWords.capacity / 4 * 3 ||
+        context->measureTextHashMapInternal.length >= context->measureTextHashMapInternal.capacity / 4 * 3) {
+        Clay_ResetMeasureTextCache();
+    }
+}
+
 CLAY_WASM_EXPORT("Clay_BeginLayout")
 void Clay_BeginLayout(void) {
     Clay_Context* context = Clay_GetCurrentContext();
     Clay__InitializeEphemeralMemory(context);
     context->generation++;
     Clay__CompactLayoutElementsHashMap(context); // zid: siehe oben
+    Clay__ResetMeasureTextCacheWhenFull(context); // zid: siehe oben
     context->dynamicElementIndex = 0;
     // Set up the root container that covers the entire window
     Clay_Dimensions rootDimensions = {context->layoutDimensions.width, context->layoutDimensions.height};
